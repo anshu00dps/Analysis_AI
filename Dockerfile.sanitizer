@@ -1,0 +1,23 @@
+# Image for the NER / sanitization service (your app.py).
+# torch + transformers are heavy, so this is a separate image from the backend.
+FROM python:3.12-slim
+
+WORKDIR /svc
+
+# HuggingFace caches downloaded models here; we mount a volume at this path in
+# docker-compose so the ~1.4GB roberta model isn't re-downloaded on every restart.
+ENV HF_HOME=/cache/huggingface
+
+COPY sanitizer-requirements.txt ./
+RUN pip install --no-cache-dir -r sanitizer-requirements.txt
+
+COPY app.py ./
+
+EXPOSE 8000
+
+# The model loads on startup (can take a while on first run while it downloads);
+# the healthcheck only passes once the server is serving.
+HEALTHCHECK --interval=15s --timeout=5s --retries=20 --start-period=120s \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/openapi.json').status==200 else 1)"
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

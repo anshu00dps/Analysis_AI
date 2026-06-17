@@ -1,0 +1,56 @@
+# Orchestrates the full local stack: MongoDB + NER sanitizer + backend API.
+# (Frontend service will be added once you share the frontend files.)
+#
+# Usage:
+#   docker compose up --build        # build images and start everything
+#   docker compose logs -f backend   # tail backend logs
+#   docker compose down              # stop; add -v to also wipe volumes
+#
+# Service-to-service networking: compose puts all services on one network and lets
+# them reach each other by service name (e.g. the backend talks to "mongo:27017"
+# and "sanitise:8000", NOT localhost).
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"          # exposed to host so you can use Compass/mongosh locally
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sanitise:
+    build:
+      context: .
+      dockerfile: Dockerfile.sanitizer
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/cache/huggingface   # persist the downloaded NER model between runs
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env                          # brings in OPENAI_API_KEY + model names
+    environment:
+      # Override the URLs from .env to use in-network service names instead of localhost.
+      MONGODB_URI: mongodb://mongo:27017
+      DB_NAME: analysisai
+      SANITIZER_URL: http://sanitise:8000/ner
+    depends_on:
+      mongo:
+        condition: service_healthy    # wait until Mongo accepts connections
+      sanitise:
+        condition: service_healthy    # wait until the NER model has loaded
+
+volumes:
+  mongo_data:      # MongoDB data persists across `docker compose down`
+  hf_cache:        # HuggingFace model cache (avoids re-downloading roberta)

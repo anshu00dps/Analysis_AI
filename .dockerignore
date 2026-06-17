@@ -1,0 +1,10 @@
+# Keep build contexts small and fast. Never ship the local venv, caches, or secrets.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.env
+*.md
+tests/

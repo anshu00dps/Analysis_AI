@@ -1,0 +1,7 @@
+# Dependencies for the NER sanitization service (app.py).
+# torch ships as a CPU wheel here; for GPU, use an nvidia/cuda base image + GPU runtime.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+torch>=2.2
+transformers>=4.40
