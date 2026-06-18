@@ -11,7 +11,7 @@
 # Services:
 #   - Backend API: http://localhost:3000 (Swagger at /docs)
 #   - Sanitizer:  http://localhost:8000 (Swagger at /docs)
-#   - MongoDB:    mongodb://localhost:27017 (use mongosh or Compass)
+#   - MongoDB:    mongodb://localhost:27018 (use mongosh or Compass)
 #
 # Service-to-service networking: all services are on one network and reach
 # each other by service name (e.g., backend→mongo:27017, backend→sanitise:8000).
@@ -20,7 +20,7 @@ services:
   mongo:
     image: mongo:7
     ports:
-      - "27017:27017"          # exposed to host so you can use Compass/mongosh locally
+      - "27018:27017"          # exposed to host so you can use Compass/mongosh locally
     volumes:
       - mongo_data:/data/db
     healthcheck:
