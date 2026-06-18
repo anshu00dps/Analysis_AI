@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health
+from app.api import health, analyses, stages, sanitization, summary, prompts
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.mongo import close_db, init_db
@@ -55,6 +55,11 @@ def create_app() -> FastAPI:
 
     # Register routers. Each phase adds more (analyses, stages, etc.).
     app.include_router(health.router)
+    app.include_router(analyses.router)
+    app.include_router(stages.router)
+    app.include_router(sanitization.router)
+    app.include_router(summary.router)
+    app.include_router(prompts.router)
 
     log.info("%s starting in %s mode", settings.app_name, settings.environment)
     return app
