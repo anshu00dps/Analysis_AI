@@ -1,14 +1,20 @@
-# Orchestrates the full local stack: MongoDB + NER sanitizer + backend API.
-# (Frontend service will be added once you share the frontend files.)
+# Orchestrates the full local development stack:
+# - MongoDB 7 (database)
+# - NER Sanitizer (Python FastAPI, HuggingFace RoBERTa model)
+# - Backend (Python FastAPI + LangGraph + Beanie ODM)
 #
 # Usage:
 #   docker compose up --build        # build images and start everything
 #   docker compose logs -f backend   # tail backend logs
 #   docker compose down              # stop; add -v to also wipe volumes
 #
-# Service-to-service networking: compose puts all services on one network and lets
-# them reach each other by service name (e.g. the backend talks to "mongo:27017"
-# and "sanitise:8000", NOT localhost).
+# Services:
+#   - Backend API: http://localhost:3000 (Swagger at /docs)
+#   - Sanitizer:  http://localhost:8000 (Swagger at /docs)
+#   - MongoDB:    mongodb://localhost:27017 (use mongosh or Compass)
+#
+# Service-to-service networking: all services are on one network and reach
+# each other by service name (e.g., backend→mongo:27017, backend→sanitise:8000).
 
 services:
   mongo:
@@ -31,6 +37,12 @@ services:
       - "8000:8000"
     volumes:
       - hf_cache:/cache/huggingface   # persist the downloaded NER model between runs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s  # allow time for model download
 
   backend:
     build:
@@ -50,6 +62,11 @@ services:
         condition: service_healthy    # wait until Mongo accepts connections
       sanitise:
         condition: service_healthy    # wait until the NER model has loaded
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   mongo_data:      # MongoDB data persists across `docker compose down`
